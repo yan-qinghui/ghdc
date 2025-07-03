@@ -17,6 +17,10 @@ on:
         description: '推送到GHCR.IO的镜像名称'
         required: true
         default: 'myimage'
+      add_latest_tag:
+        description: '是否同时添加 "latest" 标签? (true/false)'
+        required: true
+        default: 'true'
 
 env:
   REGISTRY: ghcr.io
@@ -48,3 +52,13 @@ jobs:
       - name: 将Docker镜像推送到GitHub容器注册表
         run: |
           docker push ${{ env.REGISTRY }}/${{ env.ACTOR_LOWER }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}
+      
+      - name: （如果需要）为镜像添加 "latest" 标签
+        if: inputs.add_latest_tag == 'true' && inputs.tag != 'latest'
+        run: |
+          docker tag ${{ inputs.dockerhub_image }}:${{ inputs.tag }} ${{ env.REGISTRY }}/${{ env.ACTOR_LOWER }}/${{ env.IMAGE_NAME }}:latest
+      
+      - name: （如果需要）推送 "latest" 标签
+        if: inputs.add_latest_tag == 'true' && inputs.tag != 'latest'
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.ACTOR_LOWER }}/${{ env.IMAGE_NAME }}:latest
