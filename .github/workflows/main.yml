@@ -18,8 +18,12 @@ on:
         required: true
         default: 'myimage'
       add_latest_tag:
-        description: '是否同时添加 "latest" 标签? (true/false)'
+        description: '是否同时添加 "latest" 标签?'
         required: true
+        type: choice
+        options:
+          - 'true'
+          - 'false'
         default: 'true'
 
 env:
