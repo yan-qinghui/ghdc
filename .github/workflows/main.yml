@@ -17,8 +17,11 @@ on:
         description: '推送到GHCR.IO的镜像名称'
         required: true
         default: 'myimage'
+      custom_tag:
+        description: '（可选）手动指定推送到 GHCR 的标签。留空则使用原始标签。'
+        required: false
       add_latest_tag:
-        description: '是否同时添加 "latest" 标签?'
+        description: '当原始标签不为 "latest" 时，是否额外添加 "latest" 标签?'
         required: true
         type: choice
         options:
@@ -49,13 +52,22 @@ jobs:
       - name: 设置小写的 GitHub 用户名
         run: echo "ACTOR_LOWER=$(echo '${{ github.actor }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       
+      - name: 确定最终的镜像标签
+        id: final_tag
+        run: |
+          if [ -n "${{ inputs.custom_tag }}" ]; then
+            echo "value=${{ inputs.custom_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "value=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+      
       - name: 为GitHub容器注册表标记Docker镜像
         run: |
-          docker tag ${{ inputs.dockerhub_image }}:${{ inputs.tag }} ${{ env.REGISTRY }}/${{ env.ACTOR_LOWER }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}
+          docker tag ${{ inputs.dockerhub_image }}:${{ inputs.tag }} ${{ env.REGISTRY }}/${{ env.ACTOR_LOWER }}/${{ env.IMAGE_NAME }}:${{ steps.final_tag.outputs.value }}
       
       - name: 将Docker镜像推送到GitHub容器注册表
         run: |
-          docker push ${{ env.REGISTRY }}/${{ env.ACTOR_LOWER }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}
+          docker push ${{ env.REGISTRY }}/${{ env.ACTOR_LOWER }}/${{ env.IMAGE_NAME }}:${{ steps.final_tag.outputs.value }}
       
       - name: （如果需要）为镜像添加 "latest" 标签
         if: inputs.add_latest_tag == 'true' && inputs.tag != 'latest'
